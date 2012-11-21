@@ -1,42 +1,41 @@
 #lang scribble/doc
-@(require (planet cce/scheme:4:1/planet)
-          scribble/manual
+@(require scribble/manual
           scribble/eval
-          (for-label scheme/base
-                     scheme/contract
-                     "main.ss"))
+          (for-label racket/base
+                     racket/contract
+                     data/ring-buffer))
 
 @(define the-eval 
    (let ([e (make-base-eval)])
-     (e '(require "main.ss"))
+     (e '(require data/ring-buffer))
      e))
 
 @title{Ring Buffers}
-@author{@(author+email "Jay McCarthy" "jay@plt-scheme.org")}
+@author{@(author+email "Jay McCarthy" "jay@racket-lang.org")}
 
-@defmodule/this-package[]
+@defmodule[data/ring-buffer]
 
-This package defines an imperative, overwritting ring buffer that holds a finite number of elements
-and may be used as a sequence.
+This package defines an imperative, overwritting ring buffer that
+holds a finite number of elements and may be used as a sequence.
 
 @defproc[(ring-buffer? [v any/c])
          boolean?]{
- Determines if @scheme[v] is a ring buffer.
+ Determines if @racket[v] is a ring buffer.
 }
                   
 @defproc[(empty-ring-buffer [max exact-nonnegative-integer?])
          ring-buffer?]{
- Constructs an empty ring buffer that may hold @scheme[max] elements.
+ Constructs an empty ring buffer that may hold @racket[max] elements.
 }
                       
 @defproc[(ring-buffer-length [rb ring-buffer?])
          exact-nonnegative-integer?]{
- Returns the length of @scheme[rb].
+ Returns the length of @racket[rb].
 }
               
 @defproc[(ring-buffer-push! [rb ring-buffer?] [v (and/c any/c (not/c false/c))])
          void]{
- Pushes @scheme[v] on to the end of @scheme[rb], potentially pushing the first element of @scheme[rb] off.
+ Pushes @racket[v] on to the end of @racket[rb], potentially pushing the first element of @racket[rb] off.
         
  @defexamples[#:eval the-eval
   (define rb (empty-ring-buffer 3))
@@ -50,9 +49,9 @@ and may be used as a sequence.
                                     
 @defproc[(ring-buffer-ref [rb ring-buffer?] [i exact-nonnegative-integer?])
          (or/c any/c false/c)]{
- Returns the value in the @scheme[i]th position of @scheme[rb].
+ Returns the value in the @racket[i]th position of @racket[rb].
          
- This interacts with @scheme[ring-buffer-push!].
+ This interacts with @racket[ring-buffer-push!].
  @defexamples[#:eval the-eval
   (define rb (empty-ring-buffer 3))
   (ring-buffer-push! rb 1)
@@ -66,8 +65,8 @@ and may be used as a sequence.
                               
 @defproc[(ring-buffer-set! [rb ring-buffer?] [i exact-nonnegative-integer?] [v (and/c any/c (not/c false/c))])
          void]{
- Sets the value in the @scheme[i]th position of @scheme[rb] to @scheme[v]
+ Sets the value in the @racket[i]th position of @racket[rb] to @racket[v]
          
- This interacts with @scheme[ring-buffer-push!].
+ This interacts with @racket[ring-buffer-push!].
 }
               

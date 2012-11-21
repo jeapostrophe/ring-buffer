@@ -1,8 +1,8 @@
-#lang scheme
+#lang racket/base
 (require tests/eli-tester
-         schemeunit
-         "main.ss")
-(require/expose "main.ss"
+         rackunit
+         data/ring-buffer)
+(require/expose data/ring-buffer
                 (wrap-at wrap+))
 
 (test

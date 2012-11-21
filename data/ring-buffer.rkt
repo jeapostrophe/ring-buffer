@@ -1,4 +1,6 @@
-#lang scheme
+#lang racket/base
+(require racket/match
+         racket/contract)
 
 (define (wrap-at max i)
   (if (i . >= . max)
