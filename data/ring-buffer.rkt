@@ -2,55 +2,73 @@
 (require racket/match
          racket/contract)
 
-(define (wrap-at max i)
-  (if (i . >= . max)
-      (wrap-at max (- i max))
-      i))
-(define (wrap+ max x y)
-  (wrap-at max (+ x y))) 
+(define (wrap-at len i)
+  (cond
+    [(< i 0)
+     (wrap-at len (+ len i))]
+    [(<= len i)
+     (wrap-at len (- i len))]
+    [else
+     i]))
+(define (wrap+ len x y)
+  (wrap-at len (+ x y)))
 
-(define-struct ring-buffer (length [fst #:mutable] [nxt #:mutable] vals)
+(define-struct ring-buffer (len [fst #:mutable] [cnt #:mutable] [nxt #:mutable] vals)
   #:property prop:sequence
   (lambda (rb)
-    (match rb
-      [(struct ring-buffer (max fst _ vals))
-       (make-do-sequence
-        (lambda ()
-          (values 
-           (lambda (p) 
-             (ring-buffer-ref rb p))
-           (lambda (p) (add1 p))
-           0
-           (lambda (p) (< p max))
-           (lambda (v) v)
-           (lambda (p v) (and (< p max) v)))))])))
+    (match-define (ring-buffer len fst cnt nxt vals) rb)
+    (make-do-sequence
+     (λ ()
+       (values
+        (λ (p) (ring-buffer-ref rb p))
+        (λ (p) (add1 p))
+        0
+        (λ (p) (< p cnt))
+        (λ (v) v)
+        (λ (p v) (and (< p cnt) v)))))))
 
-(define (empty-ring-buffer max)
-  (make-ring-buffer max #f 0 (make-vector max #f)))
+(define (empty-ring-buffer len)
+  (make-ring-buffer len #f 0 0 (make-vector len #f)))
 (define (ring-buffer-push! rb m)
-  (match rb
-    [(struct ring-buffer (max fst nxt vals))
-     (unless (zero? max)
-       (when (and fst (= fst nxt))
-         (set-ring-buffer-fst! rb (wrap+ max (ring-buffer-fst rb) 1)))
-       (vector-set! vals nxt m)
-       (set-ring-buffer-nxt! rb (wrap+ max nxt 1))       
-       (unless fst
-         (set-ring-buffer-fst! rb 0)))]))
+  (match-define (ring-buffer len fst cnt nxt vals) rb)
+  (unless (zero? len)
+    (if fst
+      (when (= fst nxt)
+        (set-ring-buffer-fst! rb (wrap+ len fst 1)))
+      (set-ring-buffer-fst! rb 0))
+    (vector-set! vals nxt m)
+    (set-ring-buffer-nxt! rb (wrap+ len nxt 1))
+    (set-ring-buffer-cnt! rb (min len (add1 cnt)))))
+(define (ring-buffer-pop! rb)
+  (match-define (ring-buffer len fst cnt nxt vals) rb)
+  (when (zero? len) (error 'ring-buffer-pop! "No elements"))
+  (define new-nxt (wrap+ len nxt -1))
+  (set-ring-buffer-nxt! rb new-nxt)
+  (set-ring-buffer-cnt! rb (sub1 cnt))
+  (vector-ref vals new-nxt))
 
 (define (ring-buffer-ref rb i)
-  (match rb
-    [(struct ring-buffer (max fst _ vals))
-     (vector-ref vals (wrap+ max (if fst fst 0) i))]))
+  (match-define (ring-buffer len fst cnt nxt vals) rb)
+  (unless (< i cnt) (error 'ring-buffer-ref "No element ~e" i))
+  (vector-ref vals (wrap+ len (if fst fst 0) i)))
 (define (ring-buffer-set! rb i v)
-  (match rb
-    [(struct ring-buffer (max fst _ vals))
-     (vector-set! vals (wrap+ max (if fst fst 0) i) v)]))
+  (match-define (ring-buffer len fst cnt nxt vals) rb)
+  (unless (< i cnt) (error 'ring-buffer-set! "No element ~e" i))
+  (vector-set! vals (wrap+ len (if fst fst 0) i) v))
 
-(provide/contract
- [empty-ring-buffer (exact-nonnegative-integer? . -> . ring-buffer?)]
- [ring-buffer? (any/c . -> . boolean?)]
- [ring-buffer-length (ring-buffer? . -> . exact-nonnegative-integer?)]
- [ring-buffer-ref (ring-buffer? exact-nonnegative-integer? . -> . (or/c any/c false/c))]
- [ring-buffer-set! (ring-buffer? exact-nonnegative-integer? (and/c any/c (not/c false/c)) . -> . void)]
- [ring-buffer-push! (ring-buffer? (and/c any/c (not/c false/c)) . -> . void)])
+(provide
+ (contract-out
+  [empty-ring-buffer
+   (-> exact-nonnegative-integer? ring-buffer?)]
+  [ring-buffer?
+   (-> any/c boolean?)]
+  [rename ring-buffer-len ring-buffer-length
+          (-> ring-buffer? exact-nonnegative-integer?)]
+  [ring-buffer-ref
+   (-> ring-buffer? exact-nonnegative-integer? (or/c any/c false/c))]
+  [ring-buffer-set!
+   (-> ring-buffer? exact-nonnegative-integer? (and/c any/c (not/c false/c)) void?)]
+  [ring-buffer-push!
+   (-> ring-buffer? (and/c any/c (not/c false/c)) void?)]
+  [ring-buffer-pop!
+   (-> ring-buffer? (and/c any/c (not/c false/c)))]))

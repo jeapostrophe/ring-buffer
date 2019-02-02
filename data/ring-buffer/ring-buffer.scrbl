@@ -34,7 +34,7 @@ holds a finite number of elements and may be used as a sequence.
 }
               
 @defproc[(ring-buffer-push! [rb ring-buffer?] [v (and/c any/c (not/c false/c))])
-         void]{
+         void?]{
  Pushes @racket[v] on to the end of @racket[rb], potentially pushing the first element of @racket[rb] off.
         
  @defexamples[#:eval the-eval
@@ -46,7 +46,23 @@ holds a finite number of elements and may be used as a sequence.
   (ring-buffer-push! rb 4)
   (for/list ([v rb]) v)]
  }
-                                    
+
+@defproc[(ring-buffer-pop! [rb ring-buffer?])
+         (and/c any/c (not/c false/c))]{
+ Pops a value from the end of @racket[rb].
+        
+ @defexamples[#:eval the-eval
+  (define rb (empty-ring-buffer 3))
+  (ring-buffer-push! rb 1)
+  (ring-buffer-push! rb 2)
+  (ring-buffer-push! rb 3)
+  (for/list ([v rb]) v)
+  (ring-buffer-pop! rb)
+  (for/list ([v rb]) v)
+  (ring-buffer-push! rb 4)
+  (for/list ([v rb]) v)]
+ }
+
 @defproc[(ring-buffer-ref [rb ring-buffer?] [i exact-nonnegative-integer?])
          (or/c any/c false/c)]{
  Returns the value in the @racket[i]th position of @racket[rb].
@@ -64,7 +80,7 @@ holds a finite number of elements and may be used as a sequence.
  }
                               
 @defproc[(ring-buffer-set! [rb ring-buffer?] [i exact-nonnegative-integer?] [v (and/c any/c (not/c false/c))])
-         void]{
+         void?]{
  Sets the value in the @racket[i]th position of @racket[rb] to @racket[v]
          
  This interacts with @racket[ring-buffer-push!].
